@@ -1,0 +1,18 @@
+﻿@{
+    ViewData["Title"] = "Docs";
+}
+
+<div class="row">
+    <div class="col text-center">
+        <h3>Document ID: @ViewBag.DocId</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <label for="paragraph1">Paragraph 1</label>
+        <textarea class="form-control" id="paragraph1" rows="5">
+            @ViewBag.Text
+        </textarea>
+    </div>
+</div>
