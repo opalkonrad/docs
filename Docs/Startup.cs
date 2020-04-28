@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.SignalR;
+using System.Net.WebSockets;
+using Microsoft.AspNetCore.Http;
+using System.Threading;
+using Docs.Sockets;
 
 namespace Docs
 {
@@ -24,6 +29,8 @@ namespace Docs
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+
+            services.AddWebSocketManager();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,6 +59,13 @@ namespace Docs
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
+
+
+            var serviceScopeFactory = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>();
+            var serviceProvider = serviceScopeFactory.CreateScope().ServiceProvider;
+
+            app.UseWebSockets();
+            app.MapWebSocketManager("/ws", serviceProvider.GetService<DocsHandler>());
         }
     }
 }

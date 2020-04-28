@@ -3,33 +3,57 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Docs.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.VisualStudio.Web.CodeGeneration.Contracts.Messaging;
 
 namespace Docs.Controllers
 {
     public class DocsController : Controller
     {
-        public IActionResult Index()
-        {
-            AsynchronousClient.StartClient();
-            ViewBag.Text = AsynchronousClient.response;
+        //private IHubContext<DocsHub> _hubContext { get; set; }
 
-            return View();
-        }
+        /*public DocsController(IHubContext<DocsHub> hubContext)
+        {
+            _hubContext = hubContext;
+        }*/
 
         [HttpPost, ValidateAntiForgeryToken]
-        public IActionResult Connect(ConnectionInfo connInfo)
+        public IActionResult Index(ConnectionInfo connInfo)
         {
-            AsynchronousClient.StartClient();
-            ViewBag.Text = AsynchronousClient.response;
-            ViewBag.DocId = connInfo.DocId;
+
+
+            return View(connInfo);
+        }
+
+        /*[HttpPost, ValidateAntiForgeryToken]
+        public IActionResult ConnectAsync(ConnectionInfo connInfo)
+        {
+            //Thread child = new Thread(new ThreadStart(childThread));
+            //child.Start();
 
             return View("Index", "Docs");
+        }*/
+/*
+        private async void childThread()
+        {
+            AsynchronousClient.StartClient();
+            string text = AsynchronousClient.response;
+            await updateDocs("dupa", text);
+            SendMessage("jflds", "jslf");
+            ViewBag.Text = AsynchronousClient.response;
         }
+
+        public async Task updateDocs(string user, string message)
+        {
+            await _hubContext.Clients.All.SendAsync("ReceiveMessage", user, message);
+        }
+
 
         // State object for receiving data from remote device.  
         public class StateObject
@@ -210,6 +234,6 @@ namespace Docs.Controllers
                     Console.WriteLine(e.ToString());
                 }
             }
-        }
+        }*/
     }
 }
