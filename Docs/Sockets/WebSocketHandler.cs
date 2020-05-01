@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -20,18 +21,20 @@ namespace Docs.Sockets
 
         public virtual void OnConnected(WebSocket webSocket)
         {
-            connectionManager.AddSocket(webSocket);
+            connectionManager.AddSockets(webSocket);
         }
 
         public virtual async Task OnDisconnected(WebSocket webSocket)
         {
-            await connectionManager.RemoveSocket(connectionManager.GetId(webSocket));
+            await connectionManager.RemoveSockets(connectionManager.GetId(webSocket));
         }
 
         public async Task SendMessageAsync(WebSocket webSocket, string message)
         {
             if (webSocket.State != WebSocketState.Open)
+            {
                 return;
+            }
 
             await webSocket.SendAsync(new ArraySegment<byte>(array: Encoding.ASCII.GetBytes(message),
                                                                     offset: 0,
@@ -40,6 +43,8 @@ namespace Docs.Sockets
                                     true,
                                     CancellationToken.None);
         }
+
+        
 
         public async Task SendMessageAsync(string webSocketId, string message)
         {

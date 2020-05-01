@@ -4,7 +4,7 @@
     ViewData["Title"] = "Docs";
 }
 
-<!--<div class="row">
+<div class="row">
     <div class="col text-center">
         <h3>Document ID = @Html.DisplayFor(model => model.DocId)</h3>
     </div>
@@ -12,13 +12,32 @@
 
 <div class="row">
     <div class="col">
-        <label for="paragraph1">Paragraph 1</label>
-        <textarea class="form-control" id="paragraph1" rows="5">
+        <label for="info">Connection info</label>
+        <textarea class="form-control" id="info" rows="3">
 
         </textarea>
     </div>
 </div>
 
+<div class="row">
+    <div class="col">
+        <label for="docs">Document</label>
+        <textarea class="form-control" id="docs" rows="10">
+
+        </textarea>
+    </div>
+</div>
+
+
+<input type=text id="textInput" placeholder="Enter your text" />
+<button id="sendButton">Send</button>
+
+<ul id="messages"></ul>
+
+
+
+<script src="~/js/docs.js"></script>
+<!--
 <h1>WebSocket Sample Application</h1>
 <p id="stateLabel">Ready to connect...</p>
 <div>
@@ -183,12 +202,3 @@
 
 
     -->
-
-
-
-<input type=text id="textInput" placeholder="Enter your text" />
-<button id="sendButton">Send</button>
-
-<ul id="messages"></ul>
-
-<script src="~/js/docs.js"></script>

@@ -11,31 +11,31 @@ namespace Docs.Sockets
 {
     public class ConnectionManager
     {
-        private ConcurrentDictionary<string, WebSocket> webSockets = new ConcurrentDictionary<string, WebSocket>();
+        private ConcurrentDictionary<string, WebSocket> sockets = new ConcurrentDictionary<string, WebSocket>();
 
         public ConcurrentDictionary<string, WebSocket> GetAll()
         {
-            return webSockets;
+            return sockets;
         }
 
         public WebSocket GetWebSocket(string id)
         {
-            return webSockets.FirstOrDefault(p => p.Key == id).Value;
+            return sockets.FirstOrDefault(p => p.Key == id).Value;
         }
 
         public string GetId(WebSocket webSocket)
         {
-            return webSockets.FirstOrDefault(p => p.Value == webSocket).Key;
+            return sockets.FirstOrDefault(p => p.Value == webSocket).Key;
         }
 
-        public void AddSocket(WebSocket webSocket)
+        public void AddSockets(WebSocket webSocket)
         {
-            webSockets.TryAdd(CreateConnectionId(), webSocket);
+            sockets.TryAdd(CreateConnectionId(), webSocket);
         }
 
-        public async Task RemoveSocket(string id)
+        public async Task RemoveSockets(string id)
         {
-            webSockets.TryRemove(id, out WebSocket webSocket);
+            sockets.TryRemove(id, out WebSocket webSocket);
 
             await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
         }
@@ -46,3 +46,46 @@ namespace Docs.Sockets
         }
     }
 }
+
+
+/*
+ * private ConcurrentDictionary<string, Tuple<WebSocket, Socket>> sockets = new ConcurrentDictionary<string, Tuple<WebSocket, Socket>>();
+
+        public ConcurrentDictionary<string, Tuple<WebSocket, Socket>> GetAll()
+        {
+            return sockets;
+        }
+
+        public Tuple<WebSocket, Socket> GetSockets(string id)
+        {
+            return sockets.FirstOrDefault(p => p.Key == id).Value;
+        }
+
+        public string GetId(WebSocket webSocket)
+        {
+            return sockets.FirstOrDefault(p => p.Value.Item1 == webSocket).Key;
+        }
+
+        public string GetId(Socket socket)
+        {
+            return sockets.FirstOrDefault(p => p.Value.Item2 == socket).Key;
+        }
+
+        public void AddSockets(WebSocket webSocket, Socket socket)
+        {
+            sockets.TryAdd(CreateConnectionId(), Tuple.Create(webSocket, socket));
+        }
+
+        public async Task RemoveSockets(string id)
+        {
+            sockets.TryRemove(id, out Tuple<WebSocket, Socket> socketPair);
+
+            socketPair.Item2.Close();
+            await socketPair.Item1.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
+        }
+
+        private string CreateConnectionId()
+        {
+            return Guid.NewGuid().ToString();
+        }
+*/
