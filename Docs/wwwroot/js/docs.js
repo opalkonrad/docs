@@ -9,31 +9,30 @@ var list = document.getElementById("messages");
 var button = document.getElementById("sendButton");
 
 
+socket = new WebSocket(uri);
 
-function connect() {
-    socket = new WebSocket(uri);
+socket.onopen = function (event) {
+    info.value += "Opened connection to " + uri;
+};
 
-    socket.onopen = function (event) {
-        info.value += "opened connection to " + uri;
-    };
+socket.onclose = function (event) {
+    info.value += "Closed connection from " + uri;
+};
 
-    socket.onclose = function (event) {
-        info.value += "closed connection from " + uri;
-    };
+socket.onerror = function (event) {
+    info.value += "Error: " + event.data;
+};
 
-    socket.onmessage = function (event) {
-        docs.value += event.data;
-    };
+socket.onmessage = function (event) {
+    event.data
+    docs.value += event.data;
+};
 
-    socket.onerror = function (event) {
-        info.value += "error: " + event.data;
-    };
-}
-
-connect();
-
-
-setInterval(send, 5000);
+//setInterval(send, 5000);
+var sendButton = document.getElementById("sendButton");
+sendButton.onclick = function () {
+    send();
+};
 function send() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
         alert("socket not connected");
@@ -41,9 +40,5 @@ function send() {
 
     socket.send(docs.value);
 };
-
-
-
-
 
 
