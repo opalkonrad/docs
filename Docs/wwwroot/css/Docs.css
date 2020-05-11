@@ -1,18 +1,9 @@
-﻿#textBox {
-    width: auto;
-    height: 500px;
-    border: 1px #000000 solid;
-    padding: 12px;
-    overflow: scroll;
+﻿body {
+    background: rgb(245,245,245);
+    background: linear-gradient(90deg, rgba(245,245,245,1) 0%, rgba(243,243,243,1) 50%, rgba(245,245,245,1) 100%);
 }
 
-#textBox #sourceText {
-    padding: 0;
-    margin: 0;
-    min-width: 498px;
-    min-height: 200px;
-}
-
-#editMode label {
-    cursor: pointer;
+#editorjs {
+    background: rgb(255,255,255);
+    background: linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(254,254,254,1) 50%, rgba(255,255,255,1) 100%);
 }

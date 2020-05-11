@@ -1,44 +1,26 @@
-﻿var scheme = document.location.protocol === "https:" ? "wss" : "ws";
-var port = document.location.port ? (":" + document.location.port) : "";
+﻿const editor = new EditorJS({
+    holder: 'editorjs',
+    placeholder: 'Waiting for connection...',
+    onChange: () => { console.log('Now I know that Editor\'s content changed!') },
+    autofocus: true,
+    minHeight: 0
+});
 
-var uri = scheme + "://" + document.location.hostname + port + "/ws";
+editor.isReady.then(() => {
+    console.log('Editor.js is ready to work!');
 
-var info = document.getElementById("info");
-var docs = document.getElementById("docs");
-var list = document.getElementById("messages");
-var button = document.getElementById("sendButton");
+    editor.blocks.insert('paragraph', { text: 'new paragraph' }, {}, 0);
 
+}).catch((reason) => {
+    console.log(`Editor.js initialization failed because of ${reason}`);
+});
 
-socket = new WebSocket(uri);
+var saveBtn = document.getElementById('save');
 
-socket.onopen = function (event) {
-    info.value += "Opened connection to " + uri;
-};
-
-socket.onclose = function (event) {
-    info.value += "Closed connection from " + uri;
-};
-
-socket.onerror = function (event) {
-    info.value += "Error: " + event.data;
-};
-
-socket.onmessage = function (event) {
-    event.data
-    docs.value += event.data;
-};
-
-//setInterval(send, 5000);
-var sendButton = document.getElementById("sendButton");
-sendButton.onclick = function () {
-    send();
-};
-function send() {
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-        alert("socket not connected");
-    }
-
-    socket.send(docs.value);
-};
-
-
+saveBtn.addEventListener('click', function () {
+    editor.save().then((outputData) => {
+        console.log('Article data: ', outputData);
+    }).catch((error) => {
+        console.log('Saving failed: ', error);
+    });
+});
