@@ -1,26 +1,42 @@
-﻿const editor = new EditorJS({
-    holder: 'editorjs',
-    placeholder: 'Waiting for connection...',
-    onChange: () => { console.log('Now I know that Editor\'s content changed!') },
-    autofocus: true,
-    minHeight: 0
+﻿var cntr = 0;
+var AddBtn = document.getElementById('add');
+var editor = document.getElementById('editor');
+
+AddBtn.addEventListener('click', function () {
+    var nodeLi = document.createElement("LI");
+    var nodeDiv = document.createElement('DIV');
+    nodeDiv.setAttribute("id", cntr);
+    nodeLi.appendChild(nodeDiv);
+    document.getElementById('editor').appendChild(nodeLi);
+
+    addParagraph(cntr, 'init data');
+
+    cntr++;
 });
 
-editor.isReady.then(() => {
-    console.log('Editor.js is ready to work!');
+function addParagraph(name, data) {
+    tinymce.init({
+        selector: '#' + name,
+        inline: true,
+        setup: function (editor) {
+            editor.on('click', function (e) {
+                console.log('instance clicked');
+            });
 
-    editor.blocks.insert('paragraph', { text: 'new paragraph' }, {}, 0);
+            editor.on('init', function (e) {
+                this.setContent(data);
+            });
 
-}).catch((reason) => {
-    console.log(`Editor.js initialization failed because of ${reason}`);
-});
-
-var saveBtn = document.getElementById('save');
-
-saveBtn.addEventListener('click', function () {
-    editor.save().then((outputData) => {
-        console.log('Article data: ', outputData);
-    }).catch((error) => {
-        console.log('Saving failed: ', error);
+            editor.on('keydown', function (e) {
+                if (13 === e.keyCode) {
+                    e.preventDefault();
+                    alert('pressed enter');
+                }
+            });
+        },
+        toolbar: [
+            "styleselect | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | help",
+            "insertdatetime | fontselect | restoredraft | removeformat | fontsizeselect | template codesample | code"
+        ]
     });
-});
+}
