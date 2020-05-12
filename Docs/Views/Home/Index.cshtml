@@ -14,16 +14,14 @@
     <div class="col-sm-10 col-md-8 col-lg-4 mx-auto">
         <form asp-controller="Docs" asp-action="Index">
             <div class="form-group">
-                <input asp-for="UserName" class="form-control" placeholder="User name">
-                <span asp-validation-for="UserName" class="text-danger"></span>
+                <input asp-for="DocsId" class="form-control" placeholder="Document ID">
+                <span asp-validation-for="DocsId" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <input asp-for="DocId" class="form-control" placeholder="Document ID">
-                <span asp-validation-for="DocId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input asp-for="DocPasswd" class="form-control" placeholder="Document password">
-                <span asp-validation-for="DocPasswd" class="text-danger"></span>
+                <select asp-for="ConnMode" class="form-control" asp-items="Html.GetEnumSelectList<ConnectionMode>()">
+                    <option value="">Choose connection mode...</option>
+                </select>
+                <span asp-validation-for="ConnMode" class="text-danger"></span>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>

@@ -8,16 +8,18 @@
 
 <div class="row">
     <div class="col text-center">
-        <h3>Document ID = @Html.DisplayFor(model => model.DocId)</h3>
+        <h3>Document ID = @Html.DisplayFor(model => model.DocsId)</h3>
     </div>
 </div>
 
-<ul id="editor"></ul>
+<div id="editor"></div>
 
 <button id="add">Add block</button>
+<button id="send">Send</button>
 
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.tiny.cloud/1/6jjx3s9z3j5tnsbc1754toilv9kzemdd6hgqa4um0v7cvt79/tinymce/5/tinymce.min.js" referrerpolicy="origin"></script>
-    <script src="~/js/docs.js"></script>
+    <script data-conn-mode=@Model.ConnMode data-docs-id=@Model.DocsId src="~/js/docs.js"></script>
 }

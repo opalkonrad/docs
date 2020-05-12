@@ -9,13 +9,16 @@ namespace Docs.Models
 {
     public class ConnectionInfo
     {
-        [Required, DisplayName("User name")]
-        public string UserName { get; set; }
-
         [Required, DisplayName("Document ID")]
-        public string DocId { get; set; }
+        public string DocsId { get; set; }
 
-        [Required, DisplayName("Document password"), DataType(DataType.Password)]
-        public string DocPasswd { get; set; }
+        [Required, DisplayName("Connection type")]
+        public ConnectionMode ConnMode { get; set; }
+    }
+
+    public enum ConnectionMode
+    {
+        Open,
+        Create
     }
 }

@@ -35,13 +35,13 @@ namespace Docs.Sockets
             _webSocketHandler.OnConnected(webSocket);
 
             // Create socket to communicate with server
-            IPAddress ipAddress = IPAddress.Parse("25.144.142.114");
+            IPAddress ipAddress = IPAddress.Parse("25.79.185.34");
             int port = 1944;
 
             // Test
-            IPHostEntry ipHostInfo = Dns.GetHostEntry("localhost");
+            /*IPHostEntry ipHostInfo = Dns.GetHostEntry("localhost");
             ipAddress = ipHostInfo.AddressList[0];
-            port = 11000;
+            port = 11000;*/
 
             IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
             Socket socket;
@@ -83,13 +83,13 @@ namespace Docs.Sockets
                     result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cts.Token);
 
                     // Get rid of zeros
-                    /*char[] msgReceived = Encoding.UTF8.GetChars(buffer, 0, result.Count);
+                    char[] msgReceived = Encoding.UTF8.GetChars(buffer, 0, result.Count);
                     char[] end = { Convert.ToChar('\n') };
-                    char[] msg = msgReceived.Concat(end).ToArray();*/
+                    char[] msg = msgReceived.Concat(end).ToArray();
 
                     // Send the data to the remote device
-                    //socket.Send(Encoding.UTF8.GetBytes(msg, 0, result.Count + 1));
-                    socket.Send(buffer);
+                    socket.Send(Encoding.UTF8.GetBytes(msg, 0, result.Count + 1));
+                    //socket.Send(buffer);
                 }
             }
             catch (OperationCanceledException)
@@ -110,7 +110,7 @@ namespace Docs.Sockets
                 try
                 {
                     int bytesReceived = socket.Receive(buffer);
-                    string msg = Encoding.UTF8.GetString(buffer);
+                    string msg = Encoding.UTF8.GetString(buffer, 0, bytesReceived);
 
                     _webSocketHandler.SendMessageAsync(webSocket, msg);
                 }
