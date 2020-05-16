@@ -106,7 +106,7 @@ socket.onmessage = function (event) {
 var sendBtn = document.getElementById("send");
 
 sendBtn.onclick = function () {
-    send();
+    socket.send('{"action":"open","uid":"' + docsId + '"}');
 };
 
 function send() {

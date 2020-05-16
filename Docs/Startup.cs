@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
-using Docs.Sockets;
+using Docs.Middleware;
 
 namespace Docs
 {
@@ -29,7 +29,7 @@ namespace Docs
         {
             services.AddControllersWithViews();
 
-            services.AddWebSocketManager();
+            services.AddSocketsManager();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -59,12 +59,9 @@ namespace Docs
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
 
-
-            var serviceScopeFactory = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>();
-            var serviceProvider = serviceScopeFactory.CreateScope().ServiceProvider;
-
             app.UseWebSockets();
-            app.MapWebSocketManager("/ws", serviceProvider.GetService<DocsHandler>());
+
+            app.MapSocketsMiddleware("/ws", app.ApplicationServices.GetService<SocketsHandler>());
         }
     }
 }
