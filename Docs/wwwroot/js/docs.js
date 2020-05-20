@@ -116,3 +116,17 @@ function send() {
 
     socket.send(tinymce.get(0).getContent());
 };
+
+
+function addStyle(text, style) {
+    switch (style) {
+        case "bold":
+            return "<b>" + text + "</b>";
+
+        case "italic":
+            return "<i>" + text + "</i>";
+
+        case "underline":
+            return "<u>" + text + "</u>";
+    }
+}

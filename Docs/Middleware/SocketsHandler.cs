@@ -47,7 +47,7 @@ namespace Docs.Middleware
                 OnConnected(webSocket, socket);
                 return socket;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }
@@ -113,7 +113,6 @@ namespace Docs.Middleware
 
                     // Send the data to the remote device
                     socket.Send(Encoding.UTF8.GetBytes(msg, 0, result.Count + 1));
-                    //socket.Send(buffer);
                 }
             }
             catch (OperationCanceledException)
@@ -166,9 +165,9 @@ namespace Docs.Middleware
                 // Signal that the connection has been made.  
                 connectDone.Set();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine(e.ToString());
+                connectDone.Set();
             }
         }
     }
