@@ -1,44 +1,59 @@
 ﻿/* Editor */
-var cntr = 0;
 var addBtn = document.getElementById('add');
-var editor = document.getElementById('editor');
+var editorsList = document.getElementById("editor");
 
 
 addBtn.addEventListener('click', function () {
-    // Add paragraph
-    addParagraph('init data');
+    // Request new paragraph
+    send("{\"action\":\"new_paragraph\",\"docsId\": \"" + docsId + "\",\"userId\":\"" + userId + "\"}");
 });
 
-function addParagraph(data) {
-    // Append div element
-    var node = document.createElement('DIV');
-    node.setAttribute("id", cntr);
-    document.getElementById('editor').appendChild(node);
+function addParagraph(data, editorId) {
+    // Append new inline editor
+    var node = document.createElement("div");
+    node.setAttribute("id", editorId);
+    editorsList.appendChild(node);
 
     // Create editor instance
     tinymce.init({
-        selector: '#' + cntr,
+        selector: "#" + editorId,
         inline: true,
-        handle_event_callback : function (editor) {
-            editor.selection.select(editor.getBody(), true);
-        },
         setup: function (editor) {
-            editor.on("click", function (e) {
-                console.log(editor.getContent());
+            // Additional button in toolbar to delete instance of editor(paragraph)
+            editor.ui.registry.addButton("deleteParagraph", {
+                icon: "remove",
+                tooltip: "Delete paragraph",
+                onAction: function () {
+                    // Request to delete paragraph
+                    editor.destroy();
+
+                    var currEditorId = editor.getElement().id;
+                    editorsList.removeChild(document.getElementById(currEditorId));
+                    currSelectedEditor = null;
+                }
             });
 
             editor.on('focus', function (e) {
                 // Send request to edit current paragraph
-                console.log("focusik na");
+                socket.send("{\"action\":\"block_paragraph\",\"docsid\":\"" + docsId + "\",\"paragraphId\":\"" + editor.getElement().id + "\"}");
             });
 
             editor.on('blur', function (e) {
-                // Send info about releasing paragraph
-                console.log("unfocusik na");
+                // Send content of paragraph before unblocking it and then unblock it
+                sendCurrParagraphEdit();
+                currSelectedEditor = null;
+
+                send("{\"action\":\"unblock_paragraph\",\"docsId\":\"" + docsId + "\",\"paragraphId\":\"" + editor.getElement().id + "\",\"userId\":\"" + userId + "\"}");
             });
 
             editor.on('init', function (e) {
+                // Set initial text
                 this.setContent(data);
+
+                // Block paragraph if in blocked paragraphs
+                if (blockedParagraphs.includes(editor.getElement().id)) {
+                    blockParagraph(editor.getElement().id);
+                }
             });
 
             editor.on('keydown', function (e) {
@@ -49,7 +64,7 @@ function addParagraph(data) {
             });
 
             editor.on("BeforeExecCommand", function (e) {
-                // Select text
+                // Select all text
                 editor.selection.select(editor.getBody(), true);
             })
 
@@ -57,107 +72,104 @@ function addParagraph(data) {
                 // Unselect text and set cursor to the end
                 editor.selection.collapse(false);
 
-                // Block linked formattings
-
+                // Apply new style
+                changeStyle(editor.getElement().id, e.command);
             });
         },
-        toolbar: "bold italic underline | fontselect fontsizeselect forecolor | copy cut paste | removeformat",
+        toolbar: "bold italic underline | fontselect fontsizeselect forecolor | copy cut paste | removeformat | deleteParagraph",
         menubar: false,
         font_formats: 'Arial=arial,helvetica,sans-serif; Courier New=courier new,courier,monospace; Times New Roman=times new roman,times'
     });
-
-    // Increase counter for next paragraph (div's id)
-    cntr++;
 }
 
 
-/* Web socket */
-var scheme = document.location.protocol === "https:" ? "wss" : "ws";
-var port = document.location.port ? (":" + document.location.port) : "";
-var connMode = document.currentScript.getAttribute('data-conn-mode');
-var docsId = document.currentScript.getAttribute('data-docs-id');
+var userId;
+var docsUsers;
 
-var uri = scheme + "://" + document.location.hostname + port + "/ws";
+var paragraphsStyles = {};
+var blockedParagraphs = [];
 
 
-socket = new WebSocket(uri);
 
-// Used to indicate document and user to the server
-var docsid;
-var docsname;
-
-var userid;
-var docsusers;
-
-var paragraphsMapper = [];
-
-var spanStyles= ["font-type", "font-size", "font-color", "underline"];
-var separateStyles  = ["bold", "italic"];
+var currSelectedEditor = null;
 
 
-socket.onopen = function (event) {
-    console.log("Opened connection to " + uri);
-
-    if (connMode == 'Open') {
-        docsid = docsId;
-        socket.send('{"action":"open","uid":"' + docsId + '"}');
-    }
-    else if (connMode == 'Create') {
-        socket.send('{"action":"create","name":"' + docsId + '"}');
-    }
-};
-
-socket.onclose = function (event) {
-    console.log("Closed connection from " + uri);
-};
-
-socket.onerror = function (event) {
-    console.log(info.value += "Error: " + event.data);
-};
-
-socket.onmessage = function (event) {
-    console.log(event.data);
-
-    var response = JSON.parse(event.data);
-
-    switch (response.action) {
-        case "open":
-            processOpen(response);
+function changeStyle(editorId, command) {
+    switch (command) {
+        case "RemoveFormat":
             break;
 
-        case "create":
-            processCreate(response);
+        case "mceToggleFormat":
+            switch (e.value) {
+                case "bold":
+                    paragraphsStyles[editorId].bold == 0 ? paragraphsStyles[editorId].bold = 1 : paragraphsStyles[editorId].bold = 0;
+                    break;
+
+                case "italic":
+                    paragraphsStyles[editorId].italic == 0 ? paragraphsStyles[editorId].italic = 1 : paragraphsStyles[editorId].italic = 0;
+                    break;
+
+                case "underline":
+                    paragraphsStyles[editorId].underline == 0 ? paragraphsStyles[editorId].underline = 1 : paragraphsStyles[editorId].underline = 0;
+                    break;
+            }
+            break;
+
+        case "FontName":
+            switch (e.value) {
+                case "arial,helvetica,sans-serif":
+                    paragraphsStyles[editorId].fontType = "Arial";
+                    break;
+
+                case "courier new,courier,monospace":
+                    paragraphsStyles[editorId].fontType = "Courier New";
+                    break;
+
+                case "times new roman,times":
+                    paragraphsStyles[editorId].fontType = "Times New Roman";
+                    break;
+            }
+            break;
+
+        case "FontSize":
+            // Delete pt at the end
+            paragraphsStyles[editorId].fontSize = e.value.substring(0, e.value.length - 2);
+            break;
+
+        case "mceApplyTextcolor":
+            paragraphsStyles[editorId].fontColor = e.value;
             break;
     }
-};
+}
 
 function processOpen(response) {
     if (response.status == 'OK') {
-        userid = response.userid;
+        userId = response.userid;
         docsname = response.name;
-        docsusers = response.users;
+        docsUsers = response.users;
 
         paragraphsToHtml(response.paragraphs);
+        addToBlockedParagraphs(response.blockedParagraphs);
     }
 }
 
 function processCreate(response) {
     if (response.status == 'OK') {
         docsid = response.docsid;
-        userid = response.userid;
+        userId = response.userid;
     }
 }
 
 function paragraphsToHtml(paragraphs) {
-    for (let paragraph = 0; paragraph < paragraphs.length; paragraph++) {
-        // Add mapping between paragraph id and paragraph number from the beginning
-        paragraphsMapper.push(paragraphs[paragraph].paragraphid);
+    for (let i = 0; i < paragraphs.length; i++) {
+        pId = paragraphs[i].paragraphId;
+        paragraphsStyles[pId] = paragraphs[i].style;
 
-        addParagraph(jsonToHtml(paragraphs[paragraph]));
+        addParagraph(createContentForEditor(paragraphs[i]), pId);
     }
 }
 
-function jsonToHtml(paragraph) {
+function createContentForEditor(paragraph) {
     let text = paragraph.text;
 
     for (let i = 0; i < separateStyles.length; i++) {
@@ -181,18 +193,56 @@ function jsonToHtml(paragraph) {
     return text;
 }
 
-
-
-//setInterval(send, 5000);
-
-function send() {
+function send(text) {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
         alert("socket not connected");
     }
 
-    socket.send(tinymce.get(0).getContent());
-};
+    socket.send(text);
+}
 
+setInterval(sendCurrParagraphEdit, 200);
+function sendCurrParagraphEdit() {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert("socket not connected");
+    }
+
+    if (currSelectedEditor != null) {
+        // Get content of current paragraph and it's styling
+        let currEditorText = tinymce.get(currSelectedEditor).getContent({ format: 'text' });
+        let style = paragraphsStyles[currSelectedEditor];
+
+        console.log(generateEditReq(currEditorText, style));
+
+        socket.send(generateEditReq(currEditorText, style))
+    }
+}
+
+function generateEditReq(text, style) {
+    console.log(text);
+
+    let defaultEdit = "{"
+                        + "\"action\":\"edit\","
+                        + "\"docsId\":\"" + docsId + "\","
+                        + "\"userId\":\"" + userId + "\","
+                        + "\"editedParagraph\":{"
+                        + "\"paragraphId\":\"" + currSelectedEditor + "\","
+                                + "\"text\":\"" + text + "\","
+                                + "\"style\":null"
+                        + "}"
+                    + "}";
+
+    let editReq = JSON.parse(defaultEdit);
+    console.log(editReq);
+
+    // Add styling
+    editReq.style = style;
+
+    return editReq;
+}
+
+var spanStyles = ["fontType", "fontSize", "fontColor", "underline"];
+var separateStyles = ["bold", "italic"];
 
 function addSeparateStyle(text, style, value) {
     if (value != 0) {
@@ -217,7 +267,7 @@ function addSpanStyle(style, value) {
             case "underline":
                 return "text-decoration: underline;";
 
-            case "font-type":
+            case "fontType":
                 if (value == "Arial") {
                     return "font-family: arial, helvetica, sans-serif;";
                 }
@@ -228,33 +278,128 @@ function addSpanStyle(style, value) {
                     return "font-family: 'times new roman', times;";
                 }
 
-            case "font-size":
+            case "fontSize":
                 return "font-size: " + value + "pt;";
 
-            case "font-color":
+            case "fontColor":
                 return "color: " + value + ";";
         }
     }
 }
 
-/*function generateJson(text) {
-    var bold, italic, underline, fontType, fontSize, fontColor, data;
+function addToBlockedParagraphs(id) {
+    blockedParagraphs.push(id);
+}
 
-    for (let i = 0; i < text.length; i++) {
-        if (text[i] == "<") {
-            i = parseTag(i+1, text);
-        }
-        else {
-            data += text[i];
-        }
+function addToBlockedParagraphs(ids) {
+    for (let i = 0; i < ids.length; i++) {
+        blockedParagraphs.push(ids[i]);
     }
 }
 
-parseTag(startPos, text) {
-    for (let i = startPos; i < text.length; i++) {
-        // italic
-        if (text[i] == "e") {
-
-        }
+function removeFromBlockedParagraphs(id) {
+    const index = blockedParagraphs.indexOf(id);
+    if (index > -1) {
+        blockedParagraphs.splice(index, 1);
     }
-}*/
+}
+
+function blockParagraph(id) {
+    tinymce.get(id).hide();
+    tinymce.get(id).getBody().setAttribute('contenteditable', false);
+
+    document.getElementById(id).classList.add("blockedParagraph");
+}
+
+function unblockParagraph(id) {
+    tinymce.get(id).show();
+    tinymce.get(id).getBody().setAttribute('contenteditable', true);
+
+    document.getElementById(id).classList.remove("blockedParagraph");
+
+    removeFromBlockedParagraphs(id);
+}
+
+function deleteParagraph(id) {
+
+}
+
+
+/* Web socket */
+var scheme = document.location.protocol === "https:" ? "wss" : "ws";
+var port = document.location.port ? (":" + document.location.port) : "";
+var connMode = document.currentScript.getAttribute('data-conn-mode');
+var docsId = document.currentScript.getAttribute('data-docs-id');
+
+var uri = scheme + "://" + document.location.hostname + port + "/ws";
+
+
+socket = new WebSocket(uri);
+
+socket.onopen = function (event) {
+    console.log("Opened connection to " + uri);
+
+    if (connMode == 'Open') {
+        socket.send("{\"action\":\"open\",\"docsId\":\"" + docsId + "\"}");
+    }
+    else if (connMode == 'Create') {
+        socket.send("{\"action\":\"create\",\"name\":\"" + docsId + "\"}");
+    }
+};
+
+socket.onclose = function (event) {
+    console.log("Closed connection from " + uri);
+};
+
+socket.onerror = function (event) {
+    console.log(info.value += "Error: " + event.data);
+};
+
+socket.onmessage = function (event) {
+    var response = JSON.parse(event.data);
+
+    switch (response.action) {
+        case "open":
+            processOpen(response);
+            break;
+
+        case "create":
+            processCreate(response);
+            break;
+
+        case "block_paragraph":
+            if (response.status == "OK") {
+                console.log(response);
+                currSelectedEditor = response.paragraphId;
+            }
+            else {
+                alert(response.details);
+            }
+            break;
+
+        case "block_paragraph_others":
+            blockParagraph(response.paragraphId);
+            break;
+
+        case "unblock_paragraph_others":
+            unblockParagraph(response.paragraphId);
+            break;
+
+        case "delete_paragraph_others":
+            deleteParagraph(response.paragraphId);
+            break;
+
+        case "new_paragraph":
+            if (response.status == "OK") {
+                addParagraph("", response.paragraphId);
+            }
+            else {
+                alert(response.details);
+            }
+            break;
+
+        default:
+            console.log(event.data);
+            break;
+    }
+};

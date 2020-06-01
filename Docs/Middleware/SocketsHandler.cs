@@ -136,7 +136,7 @@ namespace Docs.Middleware
                 socket.ReceiveTimeout = 50000;
                 try
                 {
-                    /*int bytesReceived = socket.Receive(buffer);
+                    int bytesReceived = socket.Receive(buffer);
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesReceived);
 
                     parsedJsons = jsonParser.Parse(message);
@@ -144,21 +144,21 @@ namespace Docs.Middleware
                     foreach (string msg in parsedJsons)
                     {
                         await SendMsgToWebSocket(webSocket, msg);
-                    }*/
+                    }
 
 
-                    if (i == 0)
+                    /*if (i == 0)
                     {
                         i++;
                         // TEST
                         // Open
-                        await SendMsgToWebSocket(webSocket, "{\"action\":\"open\",\"status\":\"OK\",\"userid\":\"userId123\",\"name\":\"test_document1\",\"users\":[\"Tester\",\"xXx_Kenobi_xXxPL\"],\"paragraphs\":[{\"paragraphid\":5,\"text\":\"Works fine hahaha :)\",\"style\":{\"font-type\":\"Times New Roman\",\"font-size\":\"36\",\"font-color\":\"black\",\"bold\":0,\"italic\": 1,\"underline\":0}},{\"paragraphid\":5,\"text\":\"Second paragraph\",\"style\":{\"font-type\":\"Arial\",\"font-size\":\"12\",\"font-color\":\"red\",\"bold\":0,\"italic\": 1,\"underline\":0}}]}");
+                        await SendMsgToWebSocket(webSocket, "{\"action\":\"open\",\"status\":\"OK\",\"userid\":\"userId123\",\"name\":\"test_document1\",\"users\":[\"Tester\",\"xXx_Kenobi_xXxPL\"],\"paragraphs\":[{\"paragraphId\":\"5sd4e4\",\"text\":\"Works fine hahaha :)\",\"style\":{\"fontType\":\"Times New Roman\",\"fontSize\":\"36\",\"fontColor\":\"#123abc\",\"bold\":0,\"italic\": 1,\"underline\":0}},{\"paragraphId\":\"5\",\"text\":\"Works fine hahaha :)\",\"style\":{\"fontType\":\"Times New Roman\",\"fontSize\":\"36\",\"fontColor\":\"#123abc\",\"bold\":0,\"italic\": 1,\"underline\":0}},{\"paragraphId\":\"sdgertvb6b5435v5\",\"text\":\"Works fine hahaha :)\",\"style\":{\"fontType\":\"Times New Roman\",\"fontSize\":\"36\",\"fontColor\":\"#123abc\",\"bold\":0,\"italic\": 1,\"underline\":0}}],\"blockedParagraphs\":[\"5\"]}");
 
 
                         //Edit
-                        //await SendMsgToWebSocket(webSocket, "{\"action\":\"edit\",\"docsid\":\"doc41sq45711ssst0115\",\"user\":\"editing_user\",\"editedparagraph\":{\"paragraphid\": 4676747,\"text\":\"tutaj jestem -to ja tekst\",\"style\":{\"font-type\":\"Arial\",\"font-size\":\"12\",\"font-color\":\"red\",\"bold\":0,\"italic\":1,\"underline\":0}}}");
+                        //await SendMsgToWebSocket(webSocket, "{\"action\":\"edit\",\"docsid\":\"doc41sq45711ssst0115\",\"user\":\"editing_user\",\"editedparagraph\":{\"paragraphid\": 4676747,\"text\":\"tutaj jestem -to ja tekst\",\"style\":{\"fontType\":\"Arial\",\"fontSize\":\"12\",\"fontColor\":\"red\",\"bold\":0,\"italic\":1,\"underline\":0}}}");
 
-                }
+                    }*/
                 }
                 catch (SocketException)
                 {
