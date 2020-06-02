@@ -2,3 +2,7 @@
     background: #f8f8f8;
     cursor: wait;
 }
+
+.disable {
+    pointer-events: none;
+}

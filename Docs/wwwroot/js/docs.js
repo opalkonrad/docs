@@ -1,14 +1,7 @@
 ﻿/* Editor */
-var addBtn = document.getElementById('add');
 var editorsList = document.getElementById("editor");
 
-
-addBtn.addEventListener('click', function () {
-    // Request new paragraph
-    send("{\"action\":\"new_paragraph\",\"docsId\": \"" + docsId + "\",\"userId\":\"" + userId + "\"}");
-});
-
-function addParagraph(data, editorId) {
+function createEditorsInstance(data, editorId) {
     // Append new inline editor
     var node = document.createElement("div");
     node.setAttribute("id", editorId);
@@ -19,31 +12,29 @@ function addParagraph(data, editorId) {
         selector: "#" + editorId,
         inline: true,
         setup: function (editor) {
-            // Additional button in toolbar to delete instance of editor(paragraph)
+            // Additional button in toolbar to delete instance of editor (paragraph)
             editor.ui.registry.addButton("deleteParagraph", {
                 icon: "remove",
                 tooltip: "Delete paragraph",
                 onAction: function () {
-                    // Request to delete paragraph
-                    editor.destroy();
-
-                    var currEditorId = editor.getElement().id;
-                    editorsList.removeChild(document.getElementById(currEditorId));
-                    currSelectedEditor = null;
+                    send("{\"action\":\"delete_paragraph\",\"paragraphId\":\"" + editor.getElement().id + "\"}");
                 }
+            });
+
+            editor.on('input', function (e) {
+                sendCurrParagraphEdit();
             });
 
             editor.on('focus', function (e) {
                 // Send request to edit current paragraph
-                socket.send("{\"action\":\"block_paragraph\",\"docsid\":\"" + docsId + "\",\"paragraphId\":\"" + editor.getElement().id + "\"}");
+                socket.send("{\"action\":\"block_paragraph\",\"paragraphId\":\"" + editor.getElement().id + "\"}");
             });
 
-            editor.on('blur', function (e) {
-                // Send content of paragraph before unblocking it and then unblock it
-                sendCurrParagraphEdit();
+            editor.on("blur", function (e) {
+                // Set currently selected editor to null and informa server about releasing lock
                 currSelectedEditor = null;
 
-                send("{\"action\":\"unblock_paragraph\",\"docsId\":\"" + docsId + "\",\"paragraphId\":\"" + editor.getElement().id + "\",\"userId\":\"" + userId + "\"}");
+                send("{\"action\":\"unblock_paragraph\"}");
             });
 
             editor.on('init', function (e) {
@@ -56,7 +47,7 @@ function addParagraph(data, editorId) {
                 }
             });
 
-            editor.on('keydown', function (e) {
+            editor.on("keydown", function (e) {
                 // Prevent adding new line using enter key
                 if (13 === e.keyCode) {
                     e.preventDefault();
@@ -72,35 +63,29 @@ function addParagraph(data, editorId) {
                 // Unselect text and set cursor to the end
                 editor.selection.collapse(false);
 
-                // Apply new style
-                changeStyle(editor.getElement().id, e.command);
+                // Apply new style and send changes
+                changeStyle(editor.getElement().id, e.command, e.value);
+                sendCurrParagraphEdit();
             });
         },
         toolbar: "bold italic underline | fontselect fontsizeselect forecolor | copy cut paste | removeformat | deleteParagraph",
         menubar: false,
-        font_formats: 'Arial=arial,helvetica,sans-serif; Courier New=courier new,courier,monospace; Times New Roman=times new roman,times'
+        font_formats: "Arial=arial,helvetica,sans-serif; Courier New=courier new,courier,monospace; Times New Roman=times new roman,times"
     });
 }
 
-
-var userId;
-var docsUsers;
-
+var currSelectedEditor = null;
 var paragraphsStyles = {};
 var blockedParagraphs = [];
+var docsUsers = [];
 
-
-
-var currSelectedEditor = null;
-
-
-function changeStyle(editorId, command) {
+function changeStyle(editorId, command, value) {
     switch (command) {
         case "RemoveFormat":
             break;
 
         case "mceToggleFormat":
-            switch (e.value) {
+            switch (value) {
                 case "bold":
                     paragraphsStyles[editorId].bold == 0 ? paragraphsStyles[editorId].bold = 1 : paragraphsStyles[editorId].bold = 0;
                     break;
@@ -116,7 +101,7 @@ function changeStyle(editorId, command) {
             break;
 
         case "FontName":
-            switch (e.value) {
+            switch (value) {
                 case "arial,helvetica,sans-serif":
                     paragraphsStyles[editorId].fontType = "Arial";
                     break;
@@ -132,44 +117,70 @@ function changeStyle(editorId, command) {
             break;
 
         case "FontSize":
-            // Delete pt at the end
-            paragraphsStyles[editorId].fontSize = e.value.substring(0, e.value.length - 2);
+            // Delete "pt" at the end
+            paragraphsStyles[editorId].fontSize = parseInt(value.substring(0, value.length - 2));
             break;
 
         case "mceApplyTextcolor":
-            paragraphsStyles[editorId].fontColor = e.value;
+            paragraphsStyles[editorId].fontColor = value;
             break;
     }
 }
 
 function processOpen(response) {
     if (response.status == 'OK') {
-        userId = response.userid;
-        docsname = response.name;
         docsUsers = response.users;
 
-        paragraphsToHtml(response.paragraphs);
         addToBlockedParagraphs(response.blockedParagraphs);
+        createParagraphs(response.paragraphs);
+    }
+    else {
+        alert(response.details);
     }
 }
 
 function processCreate(response) {
     if (response.status == 'OK') {
-        docsid = response.docsid;
-        userId = response.userid;
+        docsId = response.docsId;
+    }
+    else {
+        alert(response.details);
     }
 }
 
-function paragraphsToHtml(paragraphs) {
+function processBlockParagraph(response) {
+    if (response.status == "OK") {
+        currSelectedEditor = response.paragraphId;
+    }
+    else {
+        alert(response.details);
+    }
+}
+
+function processNewParagraph(response) {
+    if (response.status == "OK") {
+        createParagraph(response.newParagraph);
+    }
+    else {
+        alert(response.details);
+    }
+}
+
+function createParagraphs(paragraphs) {
     for (let i = 0; i < paragraphs.length; i++) {
-        pId = paragraphs[i].paragraphId;
-        paragraphsStyles[pId] = paragraphs[i].style;
-
-        addParagraph(createContentForEditor(paragraphs[i]), pId);
+        createParagraph(paragraphs[i]);
     }
 }
 
-function createContentForEditor(paragraph) {
+function createParagraph(paragraph) {
+    let pId = paragraph.paragraphId;
+
+    // Save style and add paragraph
+    paragraphsStyles[pId] = paragraph.style;
+    createEditorsInstance(initContentForEditor(paragraph), pId);
+}
+
+function initContentForEditor(paragraph) {
     let text = paragraph.text;
 
     for (let i = 0; i < separateStyles.length; i++) {
@@ -201,7 +212,6 @@ function send(text) {
     socket.send(text);
 }
 
-setInterval(sendCurrParagraphEdit, 200);
 function sendCurrParagraphEdit() {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
         alert("socket not connected");
@@ -212,34 +222,23 @@ function sendCurrParagraphEdit() {
         let currEditorText = tinymce.get(currSelectedEditor).getContent({ format: 'text' });
         let style = paragraphsStyles[currSelectedEditor];
 
-        console.log(generateEditReq(currEditorText, style));
-
-        socket.send(generateEditReq(currEditorText, style))
+        send(JSON.stringify(generateEditReq(currEditorText, style)));
     }
 }
 
 function generateEditReq(text, style) {
-    console.log(text);
+    let defaultEdit = {
+        action:"edit",
+        editedParagraph:{
+            paragraphId: currSelectedEditor,
+            text: text.replace(/\u00a0/g, " "),
+            style: style
+        }
+    };
 
-    let defaultEdit = "{"
-                        + "\"action\":\"edit\","
-                        + "\"docsId\":\"" + docsId + "\","
-                        + "\"userId\":\"" + userId + "\","
-                        + "\"editedParagraph\":{"
-                        + "\"paragraphId\":\"" + currSelectedEditor + "\","
-                                + "\"text\":\"" + text + "\","
-                                + "\"style\":null"
-                        + "}"
-                    + "}";
-
-    let editReq = JSON.parse(defaultEdit);
-    console.log(editReq);
-
-    // Add styling
-    editReq.style = style;
-
-    return editReq;
+    return defaultEdit;
 }
+
 
 var spanStyles = ["fontType", "fontSize", "fontColor", "underline"];
 var separateStyles = ["bold", "italic"];
@@ -252,9 +251,6 @@ function addSeparateStyle(text, style, value) {
 
             case "italic":
                 return "<em>" + text + "</em>";
-
-            case "underline":
-                return "<span style=\"text-decoration: underline;\">" + text + "</span>";
         }
     }
 
@@ -304,13 +300,6 @@ function removeFromBlockedParagraphs(id) {
     }
 }
 
-function blockParagraph(id) {
-    tinymce.get(id).hide();
-    tinymce.get(id).getBody().setAttribute('contenteditable', false);
-
-    document.getElementById(id).classList.add("blockedParagraph");
-}
-
 function unblockParagraph(id) {
     tinymce.get(id).show();
     tinymce.get(id).getBody().setAttribute('contenteditable', true);
@@ -320,8 +309,25 @@ function unblockParagraph(id) {
     removeFromBlockedParagraphs(id);
 }
 
-function deleteParagraph(id) {
+function blockParagraph(id) {
+    tinymce.get(id).hide();
+    tinymce.get(id).getBody().setAttribute('contenteditable', false);
 
+    document.getElementById(id).classList.add("blockedParagraph");
+}
+
+
+var addParagraphBtn = document.getElementById('addParagraph');
+
+addParagraphBtn.addEventListener('click', function () {
+    // Request new paragraph
+    send("{\"action\":\"new_paragraph\"}");
+});
+
+function deleteParagraph(id) {
+    currSelectedEditor = null;
+    editorsList.removeChild(document.getElementById(id));
+    tinymce.get(id).destroy();
 }
 
 
@@ -348,15 +354,26 @@ socket.onopen = function (event) {
 };
 
 socket.onclose = function (event) {
-    console.log("Closed connection from " + uri);
+    alert("Connection closed. Reason: " + event.reason);
+
+    // Block editor
+    editorsList.classList.add("disable");
 };
 
 socket.onerror = function (event) {
-    console.log(info.value += "Error: " + event.data);
+    alert("Error: " + event.data);
 };
+
+window.addEventListener('beforeunload', function (e) {
+    send("\"action\":\"leave\"");
+    socket.close();
+    e.preventDefault();
+    e.returnValue = '';
+});
 
 socket.onmessage = function (event) {
     var response = JSON.parse(event.data);
+    console.log(response);
 
     switch (response.action) {
         case "open":
@@ -367,39 +384,63 @@ socket.onmessage = function (event) {
             processCreate(response);
             break;
 
-        case "block_paragraph":
-            if (response.status == "OK") {
-                console.log(response);
-                currSelectedEditor = response.paragraphId;
-            }
-            else {
-                alert(response.details);
-            }
+        case "unblock_paragraph":
             break;
 
-        case "block_paragraph_others":
-            blockParagraph(response.paragraphId);
+        case "block_paragraph":
+            processBlockParagraph(response);
+            break;
+
+        case "new_paragraph":
+            processNewParagraph(response);
+            break;
+
+        case "delete_paragraph":
+            deleteParagraph(response.paragraphId);
+            break;
+
+        case "edit":
+            break;
+
+        case "open_others":
+            docsUsers.append(response.userId);
             break;
 
         case "unblock_paragraph_others":
             unblockParagraph(response.paragraphId);
             break;
 
+        case "block_paragraph_others":
+            blockParagraph(response.paragraphId);
+            break;
+
+        case "new_paragraph_others":
+            createParagraph(response.newParagraph);
+            break;
+
         case "delete_paragraph_others":
             deleteParagraph(response.paragraphId);
             break;
 
-        case "new_paragraph":
-            if (response.status == "OK") {
-                addParagraph("", response.paragraphId);
-            }
-            else {
-                alert(response.details);
-            }
+        case "edit_others":
+            tinymce.get(response.editedParagraph.paragraphId).setContent(initContentForEditor(response.editedParagraph));
             break;
 
         default:
-            console.log(event.data);
+            alert(event.data);
             break;
+    }
+};
+
+
+/* Tinymce fixes */
+const tinymceBind = window.tinymce.DOM.bind;
+window.tinymce.DOM.bind = (target, name, func, scope) => {
+    // TODO This is only necessary until https://github.com/tinymce/tinymce/issues/4355 is fixed
+    if (name === 'mouseup' && func.toString().includes('throttle()')) {
+        return func;
+    }
+    else {
+        return tinymceBind(target, name, func, scope);
     }
 };

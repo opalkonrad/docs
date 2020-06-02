@@ -38,7 +38,7 @@ namespace Docs.Middleware
             sockets.TryAdd(createConnectionId(), Tuple.Create(webSocket, socket));
         }
 
-        public async Task RemoveSockets(string id)
+        public async Task RemoveSockets(string id, string message)
         {
             sockets.TryRemove(id, out Tuple<WebSocket, Socket> socketPair);
 
@@ -53,7 +53,7 @@ namespace Docs.Middleware
             }
 
             // Close websocket connection
-            await socketPair.Item1.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
+            await socketPair.Item1.CloseAsync(WebSocketCloseStatus.NormalClosure, message, CancellationToken.None);
         }
 
         private string createConnectionId()

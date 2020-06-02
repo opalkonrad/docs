@@ -12,10 +12,6 @@ namespace Docs.Middleware
 {
     public class SocketsHandler
     {
-        // ManualResetEvent instances signal completion.  
-        
-        private ManualResetEvent connectDone = new ManualResetEvent(false);
-
         private readonly IPAddress ipAddress = IPAddress.Parse("25.144.142.114");
         private readonly int port = 1944;
 
@@ -31,7 +27,6 @@ namespace Docs.Middleware
             // Connect to a remote device.  
             try
             {
-                connectDone = new ManualResetEvent(false);
                 // Establish the remote endpoint for the socket
                 IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
 
@@ -41,8 +36,7 @@ namespace Docs.Middleware
                     SocketType.Stream, ProtocolType.Tcp);
 
                 // Connect to the remote endpoint.  
-                socket.BeginConnect(remoteEP, new AsyncCallback(ConnectCallback), socket);
-                connectDone.WaitOne();
+                socket.Connect(remoteEP);
 
                 OnConnected(webSocket, socket);
                 return socket;
@@ -58,14 +52,14 @@ namespace Docs.Middleware
             connectionManager.AddSockets(webSocket, socket);
         }
 
-        public async Task OnDisconnected(WebSocket webSocket)
+        public async Task OnDisconnected(WebSocket webSocket, string message)
         {
-            await connectionManager.RemoveSockets(connectionManager.GetId(webSocket));
+            await connectionManager.RemoveSockets(connectionManager.GetId(webSocket), message);
         }
 
-        public async Task OnDisconnected(Socket socket)
+        public async Task OnDisconnected(Socket socket, string message)
         {
-            await connectionManager.RemoveSockets(connectionManager.GetId(socket));
+            await connectionManager.RemoveSockets(connectionManager.GetId(socket), message);
         }
 
         public async Task SendMsgToWebSocket(WebSocket webSocket, string message)
@@ -101,10 +95,10 @@ namespace Docs.Middleware
                 while (webSocket.State == WebSocketState.Open)
                 {
                     // Set timeout
-                    cts.CancelAfter(50000);
+                    //cts.CancelAfter(50000);
 
                     // Receive data from websocket
-                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cts.Token);
+                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
                     // Get rid of zeros
                     char[] msgReceived = Encoding.UTF8.GetChars(buffer, 0, result.Count);
@@ -115,10 +109,10 @@ namespace Docs.Middleware
                     socket.Send(Encoding.UTF8.GetBytes(msg, 0, result.Count + 1));
                 }
             }
-            catch (OperationCanceledException)
+            catch (WebSocketException e)
             {
                 // Close websocket and socket connections
-                await OnDisconnected(socket);
+                await OnDisconnected(socket, e.Message);
             }
         }
 
@@ -133,7 +127,7 @@ namespace Docs.Middleware
             while (socket.Connected)
             {
                 byte[] buffer = new byte[1024 * 4];
-                socket.ReceiveTimeout = 50000;
+                //socket.ReceiveTimeout = 50000;
                 try
                 {
                     int bytesReceived = socket.Receive(buffer);
@@ -145,46 +139,11 @@ namespace Docs.Middleware
                     {
                         await SendMsgToWebSocket(webSocket, msg);
                     }
-
-
-                    /*if (i == 0)
-                    {
-                        i++;
-                        // TEST
-                        // Open
-                        await SendMsgToWebSocket(webSocket, "{\"action\":\"open\",\"status\":\"OK\",\"userid\":\"userId123\",\"name\":\"test_document1\",\"users\":[\"Tester\",\"xXx_Kenobi_xXxPL\"],\"paragraphs\":[{\"paragraphId\":\"5sd4e4\",\"text\":\"Works fine hahaha :)\",\"style\":{\"fontType\":\"Times New Roman\",\"fontSize\":\"36\",\"fontColor\":\"#123abc\",\"bold\":0,\"italic\": 1,\"underline\":0}},{\"paragraphId\":\"5\",\"text\":\"Works fine hahaha :)\",\"style\":{\"fontType\":\"Times New Roman\",\"fontSize\":\"36\",\"fontColor\":\"#123abc\",\"bold\":0,\"italic\": 1,\"underline\":0}},{\"paragraphId\":\"sdgertvb6b5435v5\",\"text\":\"Works fine hahaha :)\",\"style\":{\"fontType\":\"Times New Roman\",\"fontSize\":\"36\",\"fontColor\":\"#123abc\",\"bold\":0,\"italic\": 1,\"underline\":0}}],\"blockedParagraphs\":[\"5\"]}");
-
-
-                        //Edit
-                        //await SendMsgToWebSocket(webSocket, "{\"action\":\"edit\",\"docsid\":\"doc41sq45711ssst0115\",\"user\":\"editing_user\",\"editedparagraph\":{\"paragraphid\": 4676747,\"text\":\"tutaj jestem -to ja tekst\",\"style\":{\"fontType\":\"Arial\",\"fontSize\":\"12\",\"fontColor\":\"red\",\"bold\":0,\"italic\":1,\"underline\":0}}}");
-
-                    }*/
                 }
-                catch (SocketException)
+                catch (SocketException e)
                 {
-                    await OnDisconnected(webSocket);
+                    await OnDisconnected(webSocket, e.Message);
                 }
-            }
-        }
-
-
-
-        private void ConnectCallback(IAsyncResult ar)
-        {
-            try
-            {
-                // Retrieve the socket from the state object.  
-                Socket client = (Socket)ar.AsyncState;
-
-                // Complete the connection.  
-                client.EndConnect(ar);
-
-                // Signal that the connection has been made.  
-                connectDone.Set();
-            }
-            catch (Exception)
-            {
-                connectDone.Set();
             }
         }
     }
