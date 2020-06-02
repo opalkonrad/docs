@@ -6,17 +6,14 @@
 
 <link rel="stylesheet" href="~/css/docs.css" />
 
-<div class="row">
-    <div class="col text-center">
-        <h3>Document ID = @Html.DisplayFor(model => model.DocsId)</h3>
-    </div>
-</div>
-
 <div id="editor"></div>
 
 <div class="row">
-    <div class="col-6">
+    <div class="col-4">
         <button id="addParagraph" type="button" class="btn btn-primary">Add paragraph</button>
+    </div>
+    <div class="col-8">
+        <div>Users: <span id="users"></span></div>
     </div>
 </div>
 

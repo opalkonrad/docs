@@ -1,5 +1,6 @@
 ﻿/* Editor */
 var editorsList = document.getElementById("editor");
+var users = document.getElementById("users");
 
 function createEditorsInstance(data, editorId) {
     // Append new inline editor
@@ -128,8 +129,9 @@ function changeStyle(editorId, command, value) {
 }
 
 function processOpen(response) {
-    if (response.status == 'OK') {
+    if (response.status == "OK") {
         docsUsers = response.users;
+        users.innerHTML = response.users;
 
         addToBlockedParagraphs(response.blockedParagraphs);
         createParagraphs(response.paragraphs);
@@ -316,6 +318,20 @@ function blockParagraph(id) {
     document.getElementById(id).classList.add("blockedParagraph");
 }
 
+function processUserOpen(name) {
+    docsUsers.push(name);
+    users.innerHTML = docsUsers;
+}
+
+function processUserLeave(name) {
+    const index = docsUsers.indexOf(name);
+    if (index > -1) {
+        docsUsers.splice(index, 1);
+    }
+
+    users.innerHTML = docsUsers;
+}
+
 
 var addParagraphBtn = document.getElementById('addParagraph');
 
@@ -367,13 +383,10 @@ socket.onerror = function (event) {
 window.addEventListener('beforeunload', function (e) {
     send("\"action\":\"leave\"");
     socket.close();
-    e.preventDefault();
-    e.returnValue = '';
 });
 
 socket.onmessage = function (event) {
     var response = JSON.parse(event.data);
-    console.log(response);
 
     switch (response.action) {
         case "open":
@@ -403,7 +416,11 @@ socket.onmessage = function (event) {
             break;
 
         case "open_others":
-            docsUsers.append(response.userId);
+            processUserOpen(response.userId);
+            break;
+
+        case "leave_others":
+            processUserLeave(response.userId);
             break;
 
         case "unblock_paragraph_others":
